@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blackjack (21)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #006400;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: #1a1a1a;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+      text-align: center;
+      width: 650px;
+      position: relative;
+    }
+
+    h1 { color: gold; }
+
+    .help-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: gold;
+      color: black;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .area-jogo {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+
+    .cartas {
+      background-color: #333;
+      padding: 15px;
+      border-radius: 8px;
+      width: 280px;
+    }
+
+    .mao {
+      min-height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .carta {
+      background-color: #fff;
+      color: #000;
+      width: 60px;
+      height: 90px;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .carta.virada {
+      background-color: #c00;
+      color: #fff;
+    }
+
+    .pontos {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .controles { margin-top: 20px; }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    #btn-iniciar { background-color: #4CAF50; color: white; }
+    #btn-hit { background-color: #2196F3; color: white; }
+    #btn-stand { background-color: #f44336; color: white; }
+    button:disabled { background-color: #666; cursor: not-allowed; }
+
+    /* Modal explicação */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-content {
+      background: #222;
+      color: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+      text-align: left;
+    }
+
+    .close {
+      float: right;
+      font-size: 22px;
+      cursor: pointer;
+      color: red;
+    }
+
+    input {
+      width: 80%;
+      text-align: center;
+  }
+
+  input, button {
+    padding: 12px;
+    font-size: 16px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    transition: 0.3s;
+}
+.p_saldo{
+  font-size: 20px;
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Blackjack (21)</h1>
+    <p >Saldo: <span id="saldo">0</span></p>
+    <label class="p_saldo">Aposta: <input type="number" id="aposta" min="10" value="10"></label>
+    <button class="help-btn">?</button>
+
+    <div class="area-jogo">
+      <div class="cartas" id="dealer-cartas">
+        <h2>Dealer</h2>
+        <div class="pontos">Pontos: <span id="dealer-pontos">0</span></div>
+        <div class="mao" id="dealer-mao"></div>
+      </div>
+
+      <div class="cartas" id="jogador-cartas">
+        <h2>Você</h2>
+        <div class="pontos">Pontos: <span id="jogador-pontos">0</span></div>
+        <div class="mao" id="jogador-mao"></div>
+      </div>
+    </div>
+
+    <div class="controles">
+      <p id="mensagem"></p>
+      <button id="btn-iniciar">Iniciar Jogo</button>
+      <button id="btn-hit" disabled>Pedir Carta</button>
+      <button id="btn-stand" disabled>Parar</button>
+      <br>
+      <button class="back-btn" onclick="voltar()">⬅ Voltar</button>
+    </div>
+  </div>
+
+  <!-- Modal de ajuda -->
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Como jogar Blackjack</h2>
+      <p>🎴 O objetivo é chegar o mais próximo possível de 21 pontos sem ultrapassar.</p>
+      <p>♠ J, Q e K valem 10 pontos.</p>
+      <p>♥ O Ás pode valer 1 ou 11 pontos.</p>
+      <p>♦ Se você fizer mais pontos que o dealer sem passar de 21, você vence.</p>
+    </div>
+  </div>
+
+  <script>
+    // Elementos HTML
+    const saldoEl = document.getElementById('saldo');
+    const apostaEl = document.getElementById('aposta');
+    const mensagemEl = document.getElementById('mensagem');
+    const jogadorMaoEl = document.getElementById('jogador-mao');
+    const dealerMaoEl = document.getElementById('dealer-mao');
+    const jogadorPontosEl = document.getElementById('jogador-pontos');
+    const dealerPontosEl = document.getElementById('dealer-pontos');
+    const btnIniciar = document.getElementById('btn-iniciar');
+    const btnHit = document.getElementById('btn-hit');
+    const btnStand = document.getElementById('btn-stand');
+
+    // Variáveis do Jogo
+    let saldo = parseInt(localStorage.getItem("saldo")) || 100;
+    let aposta = 10;
+    let baralho = [];
+    let jogadorMao = [];
+    let dealerMao = [];
+
+    saldoEl.textContent = saldo;
+
+    // Funções
+    function salvarSaldo() {
+      localStorage.setItem("saldo", saldo);
+      saldoEl.textContent = saldo;
+    }
+
+    function criarBaralho() {
+      const naipes = ['♠', '♥', '♦', '♣'];
+      const valores = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+      baralho = [];
+      for (const naipe of naipes) {
+        for (const valor of valores) baralho.push({ naipe, valor });
+      }
+      for (let i = baralho.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [baralho[i], baralho[j]] = [baralho[j], baralho[i]];
+      }
+    }
+
+    function getValorCarta(carta) {
+      if (['J', 'Q', 'K'].includes(carta.valor)) return 10;
+      if (carta.valor === 'A') return 11;
+      return parseInt(carta.valor);
+    }
+
+    function calcularMao(mao) {
+      let total = 0, ases = 0;
+      for (const carta of mao) {
+        if (carta.valor === 'A') ases++;
+        total += getValorCarta(carta);
+      }
+      while (total > 21 && ases > 0) {
+        total -= 10; ases--;
+      }
+      return total;
+    }
+
+    function atualizarPontos() {
+      jogadorPontosEl.textContent = calcularMao(jogadorMao);
+      dealerPontosEl.textContent = (btnHit.disabled === false) ? "?" : calcularMao(dealerMao);
+    }
+
+    function renderizarCartas() {
+      jogadorMaoEl.innerHTML = '';
+      dealerMaoEl.innerHTML = '';
+      jogadorMao.forEach(carta => {
+        const div = document.createElement('div');
+        div.classList.add('carta');
+        div.textContent = carta.valor + carta.naipe;
+        jogadorMaoEl.appendChild(div);
+      });
+      dealerMao.forEach((carta, i) => {
+        const div = document.createElement('div');
+        div.classList.add('carta');
+        if (i === 0 && btnHit.disabled === false) {
+          div.classList.add('virada');
+          div.textContent = '';
+        } else {
+          div.textContent = carta.valor + carta.naipe;
+        }
+        dealerMaoEl.appendChild(div);
+      });
+      atualizarPontos();
+    }
+
+    function iniciarJogo() {
+      aposta = parseInt(apostaEl.value);
+      if (isNaN(aposta) || aposta < 10) {
+        mensagemEl.textContent = "A aposta mínima é 10!";
+        return;
+      }
+      if (aposta > saldo) {
+        mensagemEl.textContent = "Saldo insuficiente!";
+        return;
+      }
+      saldo -= aposta;
+      salvarSaldo();
+
+      criarBaralho();
+      jogadorMao = [baralho.pop(), baralho.pop()];
+      dealerMao = [baralho.pop(), baralho.pop()];
+      renderizarCartas();
+
+      btnHit.disabled = false;
+      btnStand.disabled = false;
+      btnIniciar.disabled = true;
+
+      if (calcularMao(jogadorMao) === 21) stand();
+    }
+
+    function hit() {
+      jogadorMao.push(baralho.pop());
+      renderizarCartas();
+      if (calcularMao(jogadorMao) > 21) {
+        mensagemEl.textContent = 'Você estourou!';
+        finalizarJogo();
+      }
+    }
+
+    function stand() {
+      while (calcularMao(dealerMao) < 17) {
+        dealerMao.push(baralho.pop());
+      }
+      renderizarCartas();
+
+      const jogadorPts = calcularMao(jogadorMao);
+      const dealerPts = calcularMao(dealerMao);
+
+      if (dealerPts > 21 || jogadorPts > dealerPts) {
+        mensagemEl.textContent = 'Você ganhou!';
+        saldo += aposta * 2;
+      } else if (jogadorPts < dealerPts) {
+        mensagemEl.textContent = 'Dealer ganhou!';
+      } else {
+        mensagemEl.textContent = 'Empate!';
+        saldo += aposta;
+      }
+      salvarSaldo();
+      finalizarJogo();
+    }
+
+    function finalizarJogo() {
+      btnHit.disabled = true;
+      btnStand.disabled = true;
+      btnIniciar.disabled = false;
+      atualizarPontos();
+    }
+
+    btnIniciar.onclick = iniciarJogo;
+    btnHit.onclick = hit;
+    btnStand.onclick = stand;
+
+    // Modal Ajuda
+    const modal = document.getElementById("helpModal");
+    document.querySelector(".help-btn").onclick = () => modal.style.display = "block";
+    document.querySelector(".close").onclick = () => modal.style.display = "none";
+    window.onclick = e => { if (e.target == modal) modal.style.display = "none"; };
+
+    function voltar() { window.location.href = "index.html"; }
+  </script>
+</body>
+</html>
